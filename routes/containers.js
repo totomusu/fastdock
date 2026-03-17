@@ -107,12 +107,24 @@ router.get('/containers/settings', async (req, res, next) => {
 });
 
 // POST /api/containers/settings/:id  (with optional icon file upload)
-router.post('/containers/settings/:id', upload.single('icon'), async (req, res, next) => {
-  // Handle multer errors (file too large, wrong type)
-  if (req.fileValidationError) {
-    return next(makeError(req.fileValidationError, 400));
-  }
+router.post(
+  '/containers/settings/:id',
+  (req, res, next) => {
+    upload.single('icon')(req, res, err => {
+      if (!err) return next();
 
+      // Multer uses err.code for common cases (e.g., LIMIT_FILE_SIZE).
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        err.statusCode = 413;
+        err.message = 'File must be under 2MB';
+      } else if (!err.statusCode) {
+        err.statusCode = 400;
+      }
+
+      next(err);
+    });
+  },
+  async (req, res, next) => {
   try {
     const containerId = req.params.id;
 

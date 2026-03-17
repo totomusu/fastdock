@@ -11,6 +11,46 @@ function makeError(message, statusCode) {
   return err;
 }
 
+function hasScheme(value) {
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(value);
+}
+
+function formatHost(hostname) {
+  // URL.hostname for IPv6 omits brackets; callers building URLs need them.
+  return hostname.includes(':') ? `[${hostname}]` : hostname;
+}
+
+function normalizeServerAddress(address) {
+  if (!address || typeof address !== 'string') {
+    return { error: 'Server address is required' };
+  }
+
+  let raw = address.trim();
+  if (raw.length === 0) return { error: 'Server address is required' };
+
+  // Accept values with or without scheme; FastDock remote servers are HTTP-only.
+  if (!hasScheme(raw)) raw = `http://${raw}`;
+
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return { error: 'Server address is not a valid URL' };
+  }
+
+  if (!parsed.hostname) {
+    return { error: 'Server address must include a hostname or IP' };
+  }
+
+  if (parsed.protocol !== 'http:') {
+    return { error: 'Server address must use http:// (HTTPS is not supported)' };
+  }
+
+  // Keep only host part (no path/query/hash). Port is stored separately.
+  const normalized = `http://${formatHost(parsed.hostname)}`;
+  return { address: normalized };
+}
+
 function validateServer({ name, address, port }) {
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     return 'Server name is required';
@@ -21,14 +61,11 @@ function validateServer({ name, address, port }) {
   if (!address || typeof address !== 'string') {
     return 'Server address is required';
   }
-  try {
-    const parsed = new URL(address);
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return 'Server address must start with http:// or https://';
-    }
-  } catch {
-    return 'Server address is not a valid URL';
-  }
+
+  // Accept address with/without scheme; normalize and validate.
+  const normalized = normalizeServerAddress(address);
+  if (normalized.error) return normalized.error;
+
   const portNum = parseInt(port, 10);
   if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
     return 'Port must be an integer between 1 and 65535';
@@ -54,12 +91,17 @@ router.post('/app-settings/servers', async (req, res, next) => {
     const validationError = validateServer({ name, address, port });
     if (validationError) return next(makeError(validationError, 400));
 
+    const normalizedAddress = normalizeServerAddress(address);
+    if (normalizedAddress.error) {
+      return next(makeError(normalizedAddress.error, 400));
+    }
+
     let settings = { servers: [] };
     try { settings = await dataStore.readJSON('appSettings.json'); } catch { settings = { servers: [] }; }
 
     settings.servers.push({
       name: name.trim().substring(0, 100),
-      address: address.trim(),
+      address: normalizedAddress.address,
       port: parseInt(port, 10)
     });
 
@@ -83,6 +125,11 @@ router.put('/app-settings/servers/:index', async (req, res, next) => {
     const validationError = validateServer({ name, address, port });
     if (validationError) return next(makeError(validationError, 400));
 
+    const normalizedAddress = normalizeServerAddress(address);
+    if (normalizedAddress.error) {
+      return next(makeError(normalizedAddress.error, 400));
+    }
+
     let settings = { servers: [] };
     try { settings = await dataStore.readJSON('appSettings.json'); } catch { settings = { servers: [] }; }
 
@@ -92,7 +139,7 @@ router.put('/app-settings/servers/:index', async (req, res, next) => {
 
     settings.servers[serverIndex] = {
       name: name.trim().substring(0, 100),
-      address: address.trim(),
+      address: normalizedAddress.address,
       port: parseInt(port, 10)
     };
 

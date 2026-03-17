@@ -79,15 +79,11 @@
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
             opacity: 0;
             transition: opacity 0.3s ease;
+            pointer-events: none;
         }
 
         .container-card:hover::before {
             opacity: 1;
-        }
-
-        .container-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
         .status-indicator {
@@ -425,6 +421,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 2;
         }
 
         #editServerModal {
@@ -612,18 +609,18 @@
         <select id="serverSelector" class="server-selector">
             <option value="local">Local Server</option>
         </select>
-        <button class="add-server-btn" onclick="showAddServerModal()">
+        <button id="addServerBtn" class="add-server-btn" type="button">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
         </button>
-        <button id="editServerBtn" class="edit-server-btn" onclick="showEditServerModal()" style="display: none;">
+        <button id="editServerBtn" class="edit-server-btn" type="button" style="display: none;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
             </svg>
         </button>
-        <button id="deleteServerBtn" class="delete-server-btn" onclick="deleteCurrentServer()" style="display: none;">
+        <button id="deleteServerBtn" class="delete-server-btn" type="button" style="display: none;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 6h18"></path>
                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
@@ -671,7 +668,7 @@
                     <label>Search icons from selfh.st/icons</label>
                     <div class="icon-search-container">
                         <input type="text" id="iconSearch" class="modal-input" placeholder="Search icon...">
-                        <button type="button" class="search-button" onclick="searchIcon()">
+                        <button id="searchIconBtn" type="button" class="search-button">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -681,7 +678,7 @@
                     <div id="searchResults" class="search-results"></div>
                 </div>
                 <div class="modal-buttons">
-                    <button type="button" class="action-button stop-button" onclick="closeModal()">Cancel</button>
+                    <button id="settingsCancelBtn" type="button" class="action-button stop-button">Cancel</button>
                     <button type="submit" class="action-button start-button">Save</button>
                 </div>
             </form>
@@ -707,8 +704,7 @@
                            placeholder="e.g: 3080">
                 </div>
                 <div class="modal-buttons">
-                    <button type="button" class="action-button stop-button" 
-                            onclick="closeAddServerModal()">Cancel</button>
+                    <button id="addServerCancelBtn" type="button" class="action-button stop-button">Cancel</button>
                     <button type="submit" class="action-button start-button">Save</button>
                 </div>
             </form>
@@ -732,7 +728,7 @@
                     <input type="number" id="editServerPort" class="modal-input" required>
                 </div>
                 <div class="modal-buttons">
-                    <button type="button" onclick="closeEditServerModal()" class="modal-button cancel">Cancel</button>
+                    <button id="editServerCancelBtn" type="button" class="modal-button cancel">Cancel</button>
                     <button type="submit" class="modal-button confirm">Save</button>
                 </div>
             </form>
@@ -753,6 +749,29 @@
                 closeModal();
             }
         };
+
+        function bindUiEvents() {
+            const addServerBtn = document.getElementById('addServerBtn');
+            if (addServerBtn) addServerBtn.addEventListener('click', showAddServerModal);
+
+            const editServerBtn = document.getElementById('editServerBtn');
+            if (editServerBtn) editServerBtn.addEventListener('click', showEditServerModal);
+
+            const deleteServerBtn = document.getElementById('deleteServerBtn');
+            if (deleteServerBtn) deleteServerBtn.addEventListener('click', deleteCurrentServer);
+
+            const settingsCancelBtn = document.getElementById('settingsCancelBtn');
+            if (settingsCancelBtn) settingsCancelBtn.addEventListener('click', closeModal);
+
+            const addServerCancelBtn = document.getElementById('addServerCancelBtn');
+            if (addServerCancelBtn) addServerCancelBtn.addEventListener('click', closeAddServerModal);
+
+            const editServerCancelBtn = document.getElementById('editServerCancelBtn');
+            if (editServerCancelBtn) editServerCancelBtn.addEventListener('click', closeEditServerModal);
+
+            const searchIconBtn = document.getElementById('searchIconBtn');
+            if (searchIconBtn) searchIconBtn.addEventListener('click', searchIcon);
+        }
 
         async function fetchContainers() {
             try {
@@ -825,26 +844,63 @@
                     card.className = 'container-card';
                     card.dataset.id = container.id;
                     card.dataset.name = name;
-                    
-                    card.innerHTML = `
-                        <button class="edit-button" onclick="showEditModal('${container.id}', '${name}')">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                        <div class="status-indicator ${isRunning ? 'running' : 'stopped'}"></div>
-                        <div class="container-icon">
-                            ${iconPath ? `<img src="${iconPath}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : '◻'}
-                        </div>
-                        <div class="container-name">${name}</div>
-                        ${showServerName ? `<div class="container-server">${container.serverName || 'Local Server'}</div>` : ''}
-                        <div class="container-status">${container.status || 'Unknown'}</div>
-                        <button class="action-button ${isRunning ? 'stop-button' : 'start-button'}" 
-                                onclick="toggleContainer('${container.id}', ${isRunning})">
-                            ${isRunning ? 'Stop' : 'Start'}
-                        </button>
+
+                    const editButton = document.createElement('button');
+                    editButton.className = 'edit-button';
+                    editButton.type = 'button';
+                    editButton.innerHTML = `
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
                     `;
+                    editButton.onclick = () => showEditModal(container.id, name);
+
+                    const statusIndicator = document.createElement('div');
+                    statusIndicator.className = `status-indicator ${isRunning ? 'running' : 'stopped'}`;
+
+                    const iconContainer = document.createElement('div');
+                    iconContainer.className = 'container-icon';
+                    if (iconPath) {
+                        const img = document.createElement('img');
+                        img.src = iconPath;
+                        img.alt = name;
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.objectFit = 'cover';
+                        img.style.borderRadius = '50%';
+                        iconContainer.appendChild(img);
+                    } else {
+                        iconContainer.textContent = '◻';
+                    }
+
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'container-name';
+                    nameEl.textContent = name;
+
+                    const serverEl = document.createElement('div');
+                    serverEl.className = 'container-server';
+                    serverEl.textContent = container.serverName || 'Local Server';
+
+                    const statusEl = document.createElement('div');
+                    statusEl.className = 'container-status';
+                    statusEl.textContent = container.status || 'Unknown';
+
+                    const actionButton = document.createElement('button');
+                    actionButton.type = 'button';
+                    actionButton.className = `action-button ${isRunning ? 'stop-button' : 'start-button'}`;
+                    actionButton.textContent = isRunning ? 'Stop' : 'Start';
+                    actionButton.onclick = () => toggleContainer(container.id, isRunning);
+
+                    card.appendChild(editButton);
+                    card.appendChild(statusIndicator);
+                    card.appendChild(iconContainer);
+                    card.appendChild(nameEl);
+                    if (showServerName) {
+                        card.appendChild(serverEl);
+                    }
+                    card.appendChild(statusEl);
+                    card.appendChild(actionButton);
                     
                     containerGrid.appendChild(card);
                 });
@@ -1020,9 +1076,21 @@
 
         function buildServerUrl(server) {
             try {
-                const parsed = new URL(server.address);
-                if (!['http:', 'https:'].includes(parsed.protocol)) return null;
-                return `${server.address}:${server.port}`;
+                const rawAddress = String(server.address || '').trim();
+                if (!rawAddress) return null;
+
+                // Accept address with or without scheme; always force HTTP.
+                const withScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(rawAddress)
+                    ? rawAddress
+                    : `http://${rawAddress}`;
+
+                const parsed = new URL(withScheme);
+                const portNum = parseInt(server.port, 10);
+                if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) return null;
+
+                // URL.hostname omits IPv6 brackets; add them back if needed.
+                const host = parsed.hostname.includes(':') ? `[${parsed.hostname}]` : parsed.hostname;
+                return `http://${host}:${portNum}`;
             } catch {
                 return null;
             }
@@ -1310,6 +1378,7 @@ window.addEventListener('resize', () => {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    bindUiEvents();
     loadServerSettings();
     loadSortPreference();
     updateGridColumns();

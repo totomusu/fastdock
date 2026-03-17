@@ -8,14 +8,18 @@ const path = require('path');
 const fs = require('fs');
 
 const dataStore = require('./utils/dataStore');
+const { ASSETS_DIR } = require('./middleware/upload');
 const errorHandler = require('./middleware/errorHandler');
 const containersRouter = require('./routes/containers');
 const appSettingsRouter = require('./routes/appSettings');
 const iconsRouter = require('./routes/icons');
 
 const app = express();
+// FastDock is commonly deployed behind a reverse proxy (Caddy/Nginx/VPN gateways)
+// that sets X-Forwarded-For. express-rate-limit validates this and will throw
+// unless `trust proxy` is enabled.
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 3080;
-const ASSETS_DIR = path.join(__dirname, 'public', 'assets');
 
 // ── Security headers ──────────────────────────────────────────────────────────
 // index.html uses inline <script> blocks, so 'unsafe-inline' is required for
@@ -33,7 +37,10 @@ app.use(helmet({
       frameAncestors: ["'none'"]
     }
   },
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  originAgentCluster: false,
+  hsts: false  // disabled: server runs HTTP only (LAN deployment)
 }));
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
@@ -71,6 +78,7 @@ app.post('/api/download-icon', downloadLimiter);
 
 // ── Static files ──────────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/assets', express.static(ASSETS_DIR));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api', containersRouter);

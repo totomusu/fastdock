@@ -51,6 +51,22 @@ npm install
 npm start
 ```
 
+### Development (auto-reload)
+
+```bash
+npm run dev
+```
+
+This uses Node.js watch mode (`node --watch`) and avoids nodemon configuration conflicts.
+
+If you prefer nodemon:
+
+```bash
+npm run dev:nodemon
+```
+
+Note: don’t run `npm run dev server.js` — `server.js` is already the entrypoint and extra args may be forwarded.
+
 4. **Access the interface**
    Open your browser and navigate to `http://serverIP:3080`
 
@@ -108,6 +124,10 @@ fastdock/
 ### Environment Variables
 
 * `PORT` — Server port (default: `3080`)
+
+### Reverse Proxy
+
+FastDock is often deployed behind a reverse proxy (e.g. Caddy/Nginx). The server enables Express `trust proxy` so rate limiting works correctly when `X-Forwarded-For` is present.
 
 ### Docker Socket
 

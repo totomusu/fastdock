@@ -1,8 +1,7 @@
-/public/assets/*
-
-/public/containerSettings.json
-/public/appSettings.json
-
-/logs/*
-
-/node_modules/
+node_modules/
+data/
+public/assets/
+logs/
+*.log
+.env
+ss

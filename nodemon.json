@@ -1,0 +1,17 @@
+{
+  "exec": "node",
+  "watch": [
+    "server.js",
+    "routes",
+    "middleware",
+    "utils",
+    "public"
+  ],
+  "ignore": [
+    "data/**",
+    "public/assets/**",
+    "logs/**",
+    "node_modules/**"
+  ],
+  "ext": "js,json"
+}
