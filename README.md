@@ -4,32 +4,25 @@
 
 A simple web-based Docker container management interface with a modern design. This application provides a fast and intuitive way to start and stop Docker containers on the go through a beautiful web interface.
 
-
-
 ![Fastdock Interface](fast-demo.png)
 ![Fastdock iOS Interface](iphone.png)
 
-## ⚠️ Security Notice
+## Security Notice
 
-**This application is designed for internal use only and should be deployed behind a VPN or in a secure network environment.**
+This application is designed for **internal/LAN use only** and should be deployed behind a VPN or in a secure network environment. It has no user authentication — all users on the network have full container management capabilities.
 
-* No authentication or authorization mechanisms
-* Direct access to Docker daemon
-* File upload capabilities without advanced validation
-* Suitable for development/staging environments only
-
-## ✨ Features
+## Features
 
 * **Real-time Container Management**: Start and stop Docker containers
 * **Multi-Server Management**: Manage Docker containers across multiple servers from a single interface
 * **Server Selector**: Quickly switch between local and remote servers
 * **Add/Edit/Delete Servers**: Configure remote servers with custom name, address, and port
 * **Server-Aware Display**: Container cards show which server they belong to
-* **Custom Container Icons**: Upload custom icons for better visual identification
+* **Custom Container Icons**: Upload custom icons or search from the selfh.st/icons library
 * **Container Renaming**: Assign custom names to containers
 * **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -61,139 +54,133 @@ npm start
 4. **Access the interface**
    Open your browser and navigate to `http://serverIP:3080`
 
-## 📋 API Endpoints
+On first boot, the `data/` directory is created automatically and any existing settings are migrated from `public/` to `data/`. After confirming the app works correctly, you can delete `public/containerSettings.json` and `public/appSettings.json` if they were present.
 
-### Container Operations
-
-* `GET /api/containers` - List all containers on the selected server
-* `POST /api/containers/:id/start` - Start a container
-* `POST /api/containers/:id/stop` - Stop a container
-* `GET /api/containers/name/:name` - Find container by name
-
-### Container Settings
-
-* `POST /api/containers/settings/:id` - Update container settings (name, icon)
-* `GET /api/containers/settings` - Get all container settings
-
-### Server Management
-
-* `GET /api/servers` - List configured remote servers
-* `POST /api/servers` - Add a new server
-* `PUT /api/servers/:id` - Edit an existing server
-* `DELETE /api/servers/:id` - Remove a server
-
-## 🛠️ Development
-
-### Project Structure
+## Project Structure
 
 ```
 fastdock/
-├── server.js                  # Main server file
-├── package.json              # Dependencies and scripts
-├── public/
-│   ├── index.html            # Main web interface
-│   ├── assets/               # Uploaded container icons
-│   ├── containerSettings.json # Container customization data
-│   └── servers.json          # Stored remote server configurations
-└── README.md
+├── server.js                   # Entry point — middleware wiring and server startup
+├── package.json
+├── ecosystem.config.js         # PM2 configuration
+├── data/                       # Persistent JSON storage (created on first boot)
+│   ├── containerSettings.json
+│   └── appSettings.json
+├── routes/
+│   ├── containers.js           # Container list, start/stop, settings, icon upload
+│   ├── appSettings.js          # Remote server CRUD
+│   └── icons.js                # Icon search and download
+├── middleware/
+│   ├── upload.js               # File upload handling with MIME validation
+│   └── errorHandler.js         # Global error handler
+├── utils/
+│   └── dataStore.js            # Async JSON read/write with atomic writes
+└── public/
+    ├── index.html              # Single-page web interface
+    └── assets/                 # Uploaded container icons (created on first boot)
 ```
 
-## 🔧 Configuration
+## API Endpoints
+
+### Container Operations
+
+* `GET /api/containers` — List all containers
+* `POST /api/containers/:id/start` — Start a container
+* `POST /api/containers/:id/stop` — Stop a container
+* `GET /api/containers/name/:name` — Find container by name
+* `POST /api/containers/settings/:id` — Update container name and/or icon
+* `GET /api/containers/settings` — Get all container customizations
+
+### Server Management
+
+* `GET /api/app-settings` — Get configured remote servers
+* `POST /api/app-settings/servers` — Add a new server
+* `PUT /api/app-settings/servers/:index` — Edit an existing server
+* `DELETE /api/app-settings/servers/:index` — Remove a server
+
+### Icon Management
+
+* `GET /api/search-icon/:name` — Search selfh.st/icons via jsdelivr CDN
+* `POST /api/download-icon` — Download and store an icon (CDN only)
+
+## Configuration
 
 ### Environment Variables
 
-* `PORT` - Server port (default: 3080), you can change it in the server.js file as you prefer
+* `PORT` — Server port (default: `3080`)
 
 ### Docker Socket
 
-The application requires access to the Docker socket. Ensure Docker is running and the socket is accessible:
-
-**Linux/macOS:**
+The application requires access to the Docker socket:
 
 ```bash
 ls -la /var/run/docker.sock
 ```
 
-**Windows (WSL):**
+### PM2 (recommended for production)
 
 ```bash
-# Ensure Docker Desktop is running
-docker ps
+npm install -g pm2
+pm2 start ecosystem.config.js
+pm2 save
 ```
 
-## 🚦 Usage
+## Usage
 
 ### Basic Operations
 
-1. **Select Server**: Use the dropdown menu to choose a local or remote server
+1. **Select Server**: Use the dropdown to choose a local or remote server
 2. **View Containers**: See all containers for the selected server
-3. **Start/Stop**: Use the buttons to manage containers as usual
-4. **Edit Container**: Click the pencil icon to change name or icon
+3. **Start/Stop**: Click the button on any container card
+4. **Edit Container**: Click the pencil icon to change the name or icon
 
 ### Container Customization
 
-1. Click the edit icon (pencil) on any container card
-2. Upload a custom icon (image files only)
-3. Set a custom name for easier identification
-4. Click "Save" to apply changes
+1. Click the edit icon on any container card
+2. Upload a custom icon (PNG, JPG, GIF, WebP, or SVG — max 2MB)
+3. Or search for an icon by name (sourced from selfh.st/icons)
+4. Set a custom display name
+5. Click "Save"
 
 ### Server Management
 
-1. Click the server selector dropdown
-2. Select "Add Server" to configure a new remote Docker server
-3. Use the edit or delete options to manage existing servers
-4. Server data is persisted and automatically loaded on startup
+1. Click "+" next to the server selector to add a remote server
+2. Enter a name, address (e.g. `http://192.168.1.5`), and port
+3. Use the edit (pencil) or delete (trash) buttons to manage existing servers
 
 ### Status Indicators
 
-* 🟢 **Green**: Container is running
-* 🔴 **Red**: Container is stopped
+* Green dot — Container is running
+* Red dot — Container is stopped
 
-## 🔐 Security Considerations
+## Security
 
-### Network Security
+The following security measures are implemented:
 
-* **Deploy behind VPN**: Ensure the application is only accessible through a secure VPN connection
-* **Internal Network**: Use only in trusted internal networks
+* **Security headers** via Helmet (X-Frame-Options, X-Content-Type-Options, CSP, etc.)
+* **Rate limiting** — 100 API requests/minute per IP; 20 for icon downloads
+* **Input validation** — Container IDs, server addresses, port numbers, and filenames are validated server-side
+* **File upload validation** — MIME type checked via HTTP header and magic bytes; 2MB size limit; filename sanitized
+* **SSRF protection** — Icon downloads are whitelisted to `cdn.jsdelivr.net` only; redirects are blocked
+* **Path traversal protection** — All file paths are resolved and checked against the assets directory
+* **No internal error details exposed** — Server errors are logged server-side; clients receive generic messages
+* **Data files outside web root** — Settings JSON files are stored in `data/` and are not accessible over HTTP
 
-### File Upload Security
+## Limitations
 
-* Only image files are accepted for container icons
-* Files are stored in the `public/assets/` directory
+* No user authentication — deploy in a trusted network only
+* No audit logging of container operations
+* Single instance only
 
-### Docker Access
-
-* The application requires Docker socket access
-* All VPN users will have full container management capabilities
-* Consider Docker socket security best practices
-
-## 🚨 Limitations
-
-* **No User Authentication**: All users have the same access level
-* **No Audit Logging**: Container operations are not logged
-* **Local Storage**: Settings are stored in local JSON files
-* **Single Instance**: Not designed for multi-instance deployment
-
-## 🛌 Multi-Server Support
-
-As of **v1.1.0**, FastDock supports managing containers across multiple Docker hosts. Key points:
-
-* Add servers with custom name, address, and port
-* Switch between servers using the dropdown selector
-* View and manage containers per-server
-* Each container shows the server it belongs to
-* Full backwards compatibility with single-server setups
-* Server list and settings are persisted locally
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Commit your changes
+4. Push to the branch and open a Pull Request
 
 ---
 
-**⚠️ Important**: This application provides direct access to Docker containers. Use only in secure, controlled environments with trusted users.
+**Important**: This application provides direct access to Docker containers. Deploy only in secure, controlled environments with trusted users.
+
 ![icon](Icon.png)

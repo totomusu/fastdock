@@ -941,6 +941,21 @@
                 currentContainerId = null;
             }
         }
+        document.getElementById('iconInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+            if (!allowed.includes(file.type)) {
+                showNotification('Only image files are allowed', true);
+                e.target.value = '';
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                showNotification('File must be under 2MB', true);
+                e.target.value = '';
+            }
+        });
+
         settingsForm.onsubmit = async (e) => {
             e.preventDefault();
             
@@ -988,22 +1003,36 @@
             selector.innerHTML = '<option value="local">Local Server</option>';
             
             servers.forEach((server, index) => {
-                selector.innerHTML += `
-                    <option value="${index}">${server.name}</option>
-                `;
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = server.name;
+                selector.appendChild(opt);
             });
-            
+
             if (servers.length > 0) {
-                selector.innerHTML += '<option value="all">All Servers</option>';
+                const opt = document.createElement('option');
+                opt.value = 'all';
+                opt.textContent = 'All Servers';
+                selector.appendChild(opt);
             }
         }
 
+
+        function buildServerUrl(server) {
+            try {
+                const parsed = new URL(server.address);
+                if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+                return `${server.address}:${server.port}`;
+            } catch {
+                return null;
+            }
+        }
 
         document.getElementById('serverSelector').addEventListener('change', async function(e) {
             const selectedValue = e.target.value;
             const deleteButton = document.getElementById('deleteServerBtn');
             const editButton = document.getElementById('editServerBtn');
-            
+
             deleteButton.style.display = 'none';
             editButton.style.display = 'none';
 
@@ -1011,7 +1040,7 @@
                 try {
 
                     const allContainers = [];
-                    
+
 
                     const localResponse = await fetch('/api/containers');
                     if (localResponse.ok) {
@@ -1021,12 +1050,17 @@
 
 
                     for (const server of servers) {
-                        const url = `${server.address}:${server.port}/api/containers`;
+                        const baseUrl = buildServerUrl(server);
+                        if (!baseUrl) {
+                            console.error(`Invalid server URL for ${server.name}`);
+                            continue;
+                        }
+                        const url = `${baseUrl}/api/containers`;
                         try {
                             const response = await fetch(url);
                             if (response.ok) {
-                                const containers = await response.json();
-                                allContainers.push(...containers.map(c => ({...c, serverName: server.name})));
+                                const remoteContainers = await response.json();
+                                allContainers.push(...remoteContainers.map(c => ({...c, serverName: server.name})));
                             }
                         } catch (error) {
                             console.error(`Error fetching containers from ${server.name}:`, error);
@@ -1044,7 +1078,12 @@
                 fetchContainers();
             } else {
                 const server = servers[parseInt(selectedValue)];
-                currentBaseUrl = `${server.address}:${server.port}`;
+                const baseUrl = buildServerUrl(server);
+                if (!baseUrl) {
+                    showNotification('Invalid server address', true);
+                    return;
+                }
+                currentBaseUrl = baseUrl;
                 deleteButton.style.display = 'flex';
                 editButton.style.display = 'flex';
                 fetchContainers();
@@ -1294,12 +1333,20 @@ async function searchIcon() {
             return;
         }
         
-        resultsContainer.innerHTML = icons.map(icon => `
-            <div class="icon-result" onclick="selectIcon('${icon.url}')">
-                <img src="${icon.url}" alt="Icon">
-                <span>${icon.format}${icon.variant !== 'default' ? ` (${icon.variant})` : ''}</span>
-            </div>
-        `).join('');
+        resultsContainer.innerHTML = '';
+        icons.forEach(icon => {
+            const div = document.createElement('div');
+            div.className = 'icon-result';
+            const img = document.createElement('img');
+            img.src = icon.url;
+            img.alt = 'Icon';
+            const span = document.createElement('span');
+            span.textContent = icon.format + (icon.variant !== 'default' ? ` (${icon.variant})` : '');
+            div.appendChild(img);
+            div.appendChild(span);
+            div.addEventListener('click', () => selectIcon(icon.url));
+            resultsContainer.appendChild(div);
+        });
     } catch (error) {
         showNotification('Error finding icons...', true);
     }
