@@ -1,9 +1,7 @@
 <div align="center">
   <img src="assets/icon-text.png" alt="FastDock" width="320" />
 
-  <h1>FastDock</h1>
-
-  <p>A lightweight, web-based Docker container management UI for local and LAN environments.</p>
+  <p>A lightweight, stupid simple, web-based Docker container start/stop UI for LAN environments.</p>
 
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
   [![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org)
@@ -86,7 +84,7 @@
 ## Quick Start
 
 ```bash
-git clone https://github.com/totovr46/fastdock.git
+git clone https://github.com/totomusu/fastdock.git
 cd fastdock
 docker compose up -d --build
 ```
@@ -102,7 +100,7 @@ Open `http://<your-server-ip>:3080` in a browser.
 FastDock runs as a container but requires access to the host Docker daemon via the socket mount.
 
 ```bash
-git clone https://github.com/totovr46/fastdock.git
+git clone https://github.com/totomusu/fastdock.git
 cd fastdock
 docker compose up -d --build
 ```
@@ -117,7 +115,7 @@ docker compose up -d --build
 **Prerequisites:** Node.js ≥ 16.0.0, Docker daemon running locally.
 
 ```bash
-git clone https://github.com/totovr46/fastdock.git
+git clone https://github.com/totomusu/fastdock.git
 cd fastdock
 npm install
 npm start
@@ -275,7 +273,7 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 3. Commit your changes with a clear message.
 4. Push and open a Pull Request against `main`.
 
-For bug reports and feature requests, open a [GitHub Issue](https://github.com/totovr46/fastdock/issues).
+For bug reports and feature requests, open a [GitHub Issue](https://github.com/totomusu/fastdock/issues).
 
 ---
 

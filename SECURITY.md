@@ -49,7 +49,7 @@ If you discover a security vulnerability, please **do not open a public GitHub i
 
 Instead, report it privately:
 
-1. Open a [GitHub Security Advisory](https://github.com/totovr46/fastdock/security/advisories/new) (preferred — keeps details private until patched).
+1. Open a [GitHub Security Advisory](https://github.com/totomusu/fastdock/security/advisories/new) (preferred — keeps details private until patched).
 2. Or send an email to the maintainer (see the GitHub profile for contact details) with the subject line `[FastDock] Security Vulnerability`.
 
 Please include:

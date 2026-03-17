@@ -25,7 +25,7 @@ Please be respectful and constructive in all interactions. This project follows 
 
 ## How to Report a Bug
 
-1. Search [existing issues](https://github.com/totovr46/fastdock/issues) first to avoid duplicates.
+1. Search [existing issues](https://github.com/totomusu/fastdock/issues) first to avoid duplicates.
 2. Open a new issue and include:
    - FastDock version (or commit hash)
    - Operating system and Docker version
