@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastDock</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+
+        
+
+        .container-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .container-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .container-card:hover::before {
+            opacity: 1;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator.running {
+            background: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+
+        .status-indicator.stopped {
+            background: #f44336;
+            box-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
+        }
+
+        .status-indicator.paused {
+            background: #FFC107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+        }
+
+        .status-indicator.restarting {
+            background: #2196F3;
+            box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+            animation: pulse 1.5s infinite;
+        }
+
+        .container-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .container-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .container-server {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 5px;
+            font-style: italic;
+        }
+
+        .container-status {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .action-button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+            min-width: 100px;
+        }
+
+        .start-button {
+            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+            color: white;
+        }
+
+        .start-button:hover {
+            background: linear-gradient(45deg, #45a049, #7CB342);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .stop-button {
+            background: linear-gradient(45deg, #f44336, #FF5722);
+            color: white;
+        }
+
+        .stop-button:hover {
+            background: linear-gradient(45deg, #da190b, #E64A19);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .container-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container-card {
+                padding: 20px;
+            }
+            
+            .container-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(10px);
+            max-width: 90%;
+            word-break: break-word;
+        }
+
+        .notification.error {
+            background: rgba(244, 67, 54, 0.9);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .server-selector-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .server-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: white;
+            padding: 8px 15px;
+            font-size: 1rem;
+            min-width: 200px;
+        }
+
+        .add-server-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .add-server-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .delete-server-btn {
+            background: rgba(244, 67, 54, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #f44336;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .delete-server-btn:hover {
+            background: rgba(244, 67, 54, 0.3);
+            transform: scale(1.1);
+        }
+
+        .edit-server-btn {
+            background: rgba(255, 193, 7, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #ffc107;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .edit-server-btn:hover {
+            background: rgba(255, 193, 7, 0.3);
+            transform: scale(1.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #2d2d2d;
+            border-radius: 15px;
+            padding: 25px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 300px;
+            color: white;
+        }
+
+        .modal-title {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .modal-input-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .edit-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        #editServerModal {
+            display: none;
+        }
+
+        .modal-button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 100px;
+            color: white;
+        }
+
+        .modal-button.cancel {
+            background: linear-gradient(45deg, #f44336, #FF5722);
+        }
+
+        .modal-button.cancel:hover {
+            background: linear-gradient(45deg, #da190b, #E64A19);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .modal-button.confirm {
+            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+        }
+
+        .modal-button.confirm:hover {
+            background: linear-gradient(45deg, #45a049, #7CB342);
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .sort-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .sort-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            padding: 10px 15px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .sort-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .sort-button svg {
+        transition: transform 0.3s ease;
+        }
+
+        .sort-button[data-sort="started"] svg {
+            transform: rotate(180deg);
+        }
+
+        .sort-button[data-sort="stopped"] svg {
+            transform: rotate(0deg);
+        }
+
+        .columns-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            padding: 10px 15px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .columns-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+
+        .sort-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+
+        .grid-cols-1 {
+            grid-template-columns: 1fr !important;
+        }
+
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+
+        .grid-cols-3 {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+
+        .grid-cols-4 {
+            grid-template-columns: repeat(4, 1fr) !important;
+        }
+
+        .icon-search-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .search-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 5px;
+            padding: 8px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .search-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .search-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .icon-result {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .icon-result:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .icon-result img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+        
+        .icon-result span {
+            font-size: 0.8rem;
+            text-align: center;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+   
+
+    <div class="server-selector-container">
+        <select id="serverSelector" class="server-selector">
+            <option value="local">Local Server</option>
+        </select>
+        <button id="addServerBtn" class="add-server-btn" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </button>
+        <button id="editServerBtn" class="edit-server-btn" type="button" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+        </button>
+        <button id="deleteServerBtn" class="delete-server-btn" type="button" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+            </svg>
+        </button>
+    </div>
+
+
+    <div class="sort-container">
+        <button id="sortButton" class="sort-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18"></path>
+                <path d="M7 12h10"></path>
+                <path d="M11 18h2"></path>
+            </svg>
+            <span id="sortLabel">Sort: </span>
+        </button>
+        <button id="columnsButton" class="columns-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="18"></rect>
+                <rect x="14" y="3" width="7" height="18"></rect>
+            </svg>
+            <span id="columnsLabel">Columns: </span>
+        </button>
+    </div>
+
+    <div class="container-grid" id="containerGrid">
+        <div class="loading-message">Loading containers...</div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Edit Container</h3>
+            <form id="settingsForm">
+                <div class="modal-input-group">
+                    <label>Container Icon</label>
+                    <input type="file" id="iconInput" accept="image/*" class="modal-input">
+                </div>
+                <div class="modal-input-group">
+                    <label>Container Name</label>
+                    <input type="text" id="nameInput" class="modal-input">
+                </div>
+                <div class="modal-input-group">
+                    <label>Search icons from selfh.st/icons</label>
+                    <div class="icon-search-container">
+                        <input type="text" id="iconSearch" class="modal-input" placeholder="Search icon...">
+                        <button id="searchIconBtn" type="button" class="search-button">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="search-results"></div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="settingsCancelBtn" type="button" class="action-button stop-button">Cancel</button>
+                    <button type="submit" class="action-button start-button">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="addServerModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Add another Server</h3>
+            <form id="addServerForm">
+                <div class="modal-input-group">
+                    <label>Server name</label>
+                    <input type="text" id="serverName" class="modal-input" required>
+                </div>
+                <div class="modal-input-group">
+                    <label>Address</label>
+                    <input type="text" id="serverAddress" class="modal-input" required 
+                           placeholder="e.g: http://192.168.1.5">
+                </div>
+                <div class="modal-input-group">
+                    <label>Port</label>
+                    <input type="number" id="serverPort" class="modal-input" required
+                           placeholder="e.g: 3080">
+                </div>
+                <div class="modal-buttons">
+                    <button id="addServerCancelBtn" type="button" class="action-button stop-button">Cancel</button>
+                    <button type="submit" class="action-button start-button">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editServerModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Edit Server</h3>
+            <form id="editServerForm">
+                <div class="modal-input-group">
+                    <label for="editServerName">Server name:</label>
+                    <input type="text" id="editServerName" class="modal-input" required>
+                </div>
+                <div class="modal-input-group">
+                    <label for="editServerAddress">Address:</label>
+                    <input type="text" id="editServerAddress" class="modal-input" required>
+                </div>
+                <div class="modal-input-group">
+                    <label for="editServerPort">Port:</label>
+                    <input type="number" id="editServerPort" class="modal-input" required>
+                </div>
+                <div class="modal-buttons">
+                    <button id="editServerCancelBtn" type="button" class="modal-button cancel">Cancel</button>
+                    <button type="submit" class="modal-button confirm">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let containers = [];
+        let currentContainerId = null;
+        let currentBaseUrl = '';
+        let servers = [];
+        const containerGrid = document.getElementById('containerGrid');
+        const modal = document.getElementById('settingsModal');
+        const settingsForm = document.getElementById('settingsForm');
+
+        window.onclick = function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+
+        function bindUiEvents() {
+            const addServerBtn = document.getElementById('addServerBtn');
+            if (addServerBtn) addServerBtn.addEventListener('click', showAddServerModal);
+
+            const editServerBtn = document.getElementById('editServerBtn');
+            if (editServerBtn) editServerBtn.addEventListener('click', showEditServerModal);
+
+            const deleteServerBtn = document.getElementById('deleteServerBtn');
+            if (deleteServerBtn) deleteServerBtn.addEventListener('click', deleteCurrentServer);
+
+            const settingsCancelBtn = document.getElementById('settingsCancelBtn');
+            if (settingsCancelBtn) settingsCancelBtn.addEventListener('click', closeModal);
+
+            const addServerCancelBtn = document.getElementById('addServerCancelBtn');
+            if (addServerCancelBtn) addServerCancelBtn.addEventListener('click', closeAddServerModal);
+
+            const editServerCancelBtn = document.getElementById('editServerCancelBtn');
+            if (editServerCancelBtn) editServerCancelBtn.addEventListener('click', closeEditServerModal);
+
+            const searchIconBtn = document.getElementById('searchIconBtn');
+            if (searchIconBtn) searchIconBtn.addEventListener('click', searchIcon);
+        }
+
+        async function fetchContainers() {
+            try {
+                containerGrid.innerHTML = '<div class="loading-message">Loading containers...</div>';
+                
+                const apiUrl = currentBaseUrl ? `${currentBaseUrl}/api/containers` : '/api/containers';
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!Array.isArray(data)) {
+                    throw new Error('Invalid data format received from server');
+                }
+                
+                containers = data.map(container => ({
+                    id: container.Id || container.id,
+                    name: (container.Names && container.Names[0].replace(/^\//, '')) || container.name,
+                    state: container.State || container.state,
+                    status: container.Status || container.status,
+                    serverName: container.serverName
+                }));
+                
+                sortContainers();
+                await renderContainers();
+                
+            } catch (error) {
+                console.error('Error fetching containers:', error);
+                showNotification('Error fetching containers: ' + error.message, true);
+                containerGrid.innerHTML = '<div class="error-message">Failed to load containers. Please try again.</div>';
+            }
+        }
+        
+        async function renderContainers(showServerName = false) {
+            try {
+                const settings = await loadContainerSettings();
+                
+                if (!Array.isArray(containers) || containers.length === 0) {
+                    containerGrid.innerHTML = '<div class="empty-message">No containers found</div>';
+                    return;
+                }
+                
+                containerGrid.innerHTML = '';
+                
+                containers.forEach(container => {
+                    if (!container || !container.id || !container.name) {
+                        console.error('Container not valid:', container);
+                        return;
+                    }
+                    
+                    const containerSettings = settings[container.id] || {};
+                    const name = containerSettings.customName || container.name;
+                    
+                    let iconPath = containerSettings.iconPath;
+                    if (!iconPath && settings) {
+                        const containerName = container.name.replace(/[^a-zA-Z0-9]/g, '-');
+                        Object.entries(settings).forEach(([id, setting]) => {
+                            if (setting.originalName === containerName && setting.iconPath) {
+                                iconPath = setting.iconPath;
+                            }
+                        });
+                    }
+                    
+                    const isRunning = container.state === 'running';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'container-card';
+                    card.dataset.id = container.id;
+                    card.dataset.name = name;
+
+                    const editButton = document.createElement('button');
+                    editButton.className = 'edit-button';
+                    editButton.type = 'button';
+                    editButton.innerHTML = `
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    `;
+                    editButton.onclick = () => showEditModal(container.id, name);
+
+                    const statusIndicator = document.createElement('div');
+                    statusIndicator.className = `status-indicator ${isRunning ? 'running' : 'stopped'}`;
+
+                    const iconContainer = document.createElement('div');
+                    iconContainer.className = 'container-icon';
+                    if (iconPath) {
+                        const img = document.createElement('img');
+                        img.src = iconPath;
+                        img.alt = name;
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.objectFit = 'cover';
+                        img.style.borderRadius = '50%';
+                        iconContainer.appendChild(img);
+                    } else {
+                        iconContainer.textContent = '◻';
+                    }
+
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'container-name';
+                    nameEl.textContent = name;
+
+                    const serverEl = document.createElement('div');
+                    serverEl.className = 'container-server';
+                    serverEl.textContent = container.serverName || 'Local Server';
+
+                    const statusEl = document.createElement('div');
+                    statusEl.className = 'container-status';
+                    statusEl.textContent = container.status || 'Unknown';
+
+                    const actionButton = document.createElement('button');
+                    actionButton.type = 'button';
+                    actionButton.className = `action-button ${isRunning ? 'stop-button' : 'start-button'}`;
+                    actionButton.textContent = isRunning ? 'Stop' : 'Start';
+                    actionButton.onclick = () => toggleContainer(container.id, isRunning);
+
+                    card.appendChild(editButton);
+                    card.appendChild(statusIndicator);
+                    card.appendChild(iconContainer);
+                    card.appendChild(nameEl);
+                    if (showServerName) {
+                        card.appendChild(serverEl);
+                    }
+                    card.appendChild(statusEl);
+                    card.appendChild(actionButton);
+                    
+                    containerGrid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error rendering containers:', error);
+                containerGrid.innerHTML = '<div class="error-message">Error rendering containers</div>';
+            }
+        }
+        
+        async function toggleContainer(containerId, isCurrentlyRunning) {
+            const card = document.querySelector(`[data-id="${containerId}"]`);
+            if (!card) return;
+            
+            const button = card.querySelector('.action-button');
+            const statusIndicator = card.querySelector('.status-indicator');
+            const statusText = card.querySelector('.container-status');
+            const containerName = card.dataset.name;
+            
+            card.classList.add('loading');
+            button.disabled = true;
+            statusIndicator.classList.add('pulse');
+            
+            try {
+                const endpoint = isCurrentlyRunning ? 'stop' : 'start';
+                const apiUrl = currentBaseUrl ? 
+                    `${currentBaseUrl}/api/containers/${containerId}/${endpoint}` : 
+                    `/api/containers/${containerId}/${endpoint}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) throw new Error('Operation failed');
+                
+                const containerIndex = containers.findIndex(c => c.id === containerId);
+                if (containerIndex !== -1) {
+                    containers[containerIndex].state = isCurrentlyRunning ? 'stopped' : 'running';
+                    containers[containerIndex].status = isCurrentlyRunning ? 'Stopped' : 'Up';
+                }
+
+                if (isCurrentlyRunning) {
+                    button.textContent = 'Start';
+                    button.className = 'action-button start-button';
+                    statusIndicator.className = 'status-indicator stopped';
+                    statusText.textContent = 'Stopped';
+                } else {
+                    button.textContent = 'Stop';
+                    button.className = 'action-button stop-button';
+                    statusIndicator.className = 'status-indicator running';
+                    statusText.textContent = 'Running';
+                }
+                
+                button.onclick = () => toggleContainer(containerId, !isCurrentlyRunning);
+                
+                showNotification(`Container "${containerName}" ${isCurrentlyRunning ? 'stopped' : 'started'} successfully`);
+            } catch (error) {
+                console.error('Error toggling container:', error);
+                showNotification(`Failed to ${isCurrentlyRunning ? 'stop' : 'start'} container "${containerName}": ${error.message}`, true);
+            } finally {
+                card.classList.remove('loading');
+                button.disabled = false;
+                statusIndicator.classList.remove('pulse');
+            }
+        }
+        function showNotification(message, isError = false) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${isError ? 'error' : ''}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        async function loadContainerSettings() {
+            try {
+                const response = await fetch('/api/containers/settings');
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                return {};
+            }
+        }
+        function showEditModal(containerId, containerName) {
+            currentContainerId = containerId;
+            document.getElementById('nameInput').value = containerName;
+            modal.style.display = 'block';
+        }
+        function closeModal() {
+            if (modal) {
+                modal.style.display = 'none';
+                settingsForm.reset();
+                currentContainerId = null;
+            }
+        }
+        document.getElementById('iconInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+            if (!allowed.includes(file.type)) {
+                showNotification('Only image files are allowed', true);
+                e.target.value = '';
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                showNotification('File must be under 2MB', true);
+                e.target.value = '';
+            }
+        });
+
+        settingsForm.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const iconFile = document.getElementById('iconInput').files[0];
+            const newName = document.getElementById('nameInput').value;
+            
+            if (iconFile) {
+                formData.append('icon', iconFile);
+            }
+            formData.append('name', newName);
+            
+            try {
+                const response = await fetch(`/api/containers/settings/${currentContainerId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) throw new Error('Failed to update settings');
+                
+                showNotification('Settings saved successfully');
+                closeModal();
+                fetchContainers(); 
+            } catch (error) {
+                showNotification('Error saving settings', true);
+            }
+        };
+        document.addEventListener('DOMContentLoaded', fetchContainers);
+
+
+        async function loadServerSettings() {
+            try {
+                const response = await fetch('/api/app-settings');
+                const settings = await response.json();
+                servers = settings.servers || [];
+                updateServerSelector();
+            } catch (error) {
+                console.error('Error loading server settings:', error);
+            }
+        }
+
+
+        function updateServerSelector() {
+            const selector = document.getElementById('serverSelector');
+            selector.innerHTML = '<option value="local">Local Server</option>';
+            
+            servers.forEach((server, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = server.name;
+                selector.appendChild(opt);
+            });
+
+            if (servers.length > 0) {
+                const opt = document.createElement('option');
+                opt.value = 'all';
+                opt.textContent = 'All Servers';
+                selector.appendChild(opt);
+            }
+        }
+
+
+        function buildServerUrl(server) {
+            try {
+                const rawAddress = String(server.address || '').trim();
+                if (!rawAddress) return null;
+
+                // Accept address with or without scheme; always force HTTP.
+                const withScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(rawAddress)
+                    ? rawAddress
+                    : `http://${rawAddress}`;
+
+                const parsed = new URL(withScheme);
+                const portNum = parseInt(server.port, 10);
+                if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) return null;
+
+                // URL.hostname omits IPv6 brackets; add them back if needed.
+                const host = parsed.hostname.includes(':') ? `[${parsed.hostname}]` : parsed.hostname;
+                return `http://${host}:${portNum}`;
+            } catch {
+                return null;
+            }
+        }
+
+        document.getElementById('serverSelector').addEventListener('change', async function(e) {
+            const selectedValue = e.target.value;
+            const deleteButton = document.getElementById('deleteServerBtn');
+            const editButton = document.getElementById('editServerBtn');
+
+            deleteButton.style.display = 'none';
+            editButton.style.display = 'none';
+
+            if (selectedValue === 'all') {
+                try {
+
+                    const allContainers = [];
+
+
+                    const localResponse = await fetch('/api/containers');
+                    if (localResponse.ok) {
+                        const localContainers = await localResponse.json();
+                        allContainers.push(...localContainers.map(c => ({...c, serverName: 'Local Server'})));
+                    }
+
+
+                    for (const server of servers) {
+                        const baseUrl = buildServerUrl(server);
+                        if (!baseUrl) {
+                            console.error(`Invalid server URL for ${server.name}`);
+                            continue;
+                        }
+                        const url = `${baseUrl}/api/containers`;
+                        try {
+                            const response = await fetch(url);
+                            if (response.ok) {
+                                const remoteContainers = await response.json();
+                                allContainers.push(...remoteContainers.map(c => ({...c, serverName: server.name})));
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching containers from ${server.name}:`, error);
+                        }
+                    }
+
+                    containers = allContainers;
+                    renderContainers(true);
+                } catch (error) {
+                    console.error('Error loading all containers:', error);
+                    showNotification('Error loading all containers', true);
+                }
+            } else if (selectedValue === 'local') {
+                currentBaseUrl = '';
+                fetchContainers();
+            } else {
+                const server = servers[parseInt(selectedValue)];
+                const baseUrl = buildServerUrl(server);
+                if (!baseUrl) {
+                    showNotification('Invalid server address', true);
+                    return;
+                }
+                currentBaseUrl = baseUrl;
+                deleteButton.style.display = 'flex';
+                editButton.style.display = 'flex';
+                fetchContainers();
+            }
+        });
+
+
+        function showAddServerModal() {
+            document.getElementById('addServerModal').style.display = 'block';
+        }
+
+
+        function closeAddServerModal() {
+            document.getElementById('addServerModal').style.display = 'none';
+            document.getElementById('addServerForm').reset();
+        }
+
+
+        document.getElementById('addServerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const serverData = {
+                name: document.getElementById('serverName').value,
+                address: document.getElementById('serverAddress').value,
+                port: document.getElementById('serverPort').value
+            };
+            
+            try {
+                const response = await fetch('/api/app-settings/servers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(serverData)
+                });
+                
+                if (!response.ok) throw new Error('Failed to save server');
+                
+                const result = await response.json();
+                servers = result.servers;
+                updateServerSelector();
+                closeAddServerModal();
+                showNotification('Server added successfully');
+            } catch (error) {
+                showNotification('Error saving server', true);
+            }
+        };
+
+
+                async function deleteCurrentServer() {
+            const selector = document.getElementById('serverSelector');
+            const selectedIndex = selector.value;
+            
+            if (selectedIndex === 'local') return;
+            
+            if (!confirm('Are you sure you want to delete this server? This action cannot be undone.')) return;
+            
+            try {
+                const response = await fetch(`/api/app-settings/servers/${selectedIndex}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('Failed to delete server');
+                
+                showNotification('Server deleted successfully');
+                
+        
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+                
+            } catch (error) {
+                showNotification('Error deleting server', true);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            loadServerSettings();
+            fetchContainers();
+        });
+
+        function showEditServerModal() {
+            const selectedIndex = document.getElementById('serverSelector').value;
+            if (selectedIndex === 'local') return;
+            
+            const server = servers[parseInt(selectedIndex)];
+            document.getElementById('editServerName').value = server.name;
+            document.getElementById('editServerAddress').value = server.address;
+            document.getElementById('editServerPort').value = server.port;
+            
+            document.getElementById('editServerModal').style.display = 'block';
+        }
+
+        function closeEditServerModal() {
+            document.getElementById('editServerModal').style.display = 'none';
+        }
+
+        document.getElementById('editServerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const selectedIndex = document.getElementById('serverSelector').value;
+            if (selectedIndex === 'local') return;
+            
+            const serverData = {
+                name: document.getElementById('editServerName').value,
+                address: document.getElementById('editServerAddress').value,
+                port: document.getElementById('editServerPort').value
+            };
+            
+            try {
+                const response = await fetch(`/api/app-settings/servers/${selectedIndex}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(serverData)
+                });
+                
+                if (!response.ok) throw new Error('Failed to update server');
+                
+                const result = await response.json();
+                servers = result.servers;
+                updateServerSelector();
+                closeEditServerModal();
+                showNotification('Server updated successfully');
+            } catch (error) {
+                showNotification('Error updating server', true);
+            }
+        };
+
+        let currentSort = localStorage.getItem('containerSort') || 'started'; 
+        async function loadSortPreference() {
+            currentSort = localStorage.getItem('containerSort');
+            if (currentSort !== 'started' && currentSort !== 'stopped') {
+                currentSort = 'started';
+                localStorage.setItem('containerSort', currentSort);
+            }
+            updateSortButton();
+            sortContainers();
+        }
+
+        function updateSortButton() {
+            const button = document.getElementById('sortButton');
+            const label = document.getElementById('sortLabel');
+            button.dataset.sort = currentSort;
+            label.textContent = `Sort: ${currentSort.charAt(0).toUpperCase() + currentSort.slice(1)}`;
+        }
+
+        function sortContainers() {
+            if (!containers || containers.length === 0) return;
+
+            containers.sort((a, b) => {
+                if (currentSort === 'started') {
+                    if (a.state === 'running' && b.state !== 'running') return -1;
+                    if (a.state !== 'running' && b.state === 'running') return 1;
+                } else { 
+                    if (a.state !== 'running' && b.state === 'running') return -1;
+                    if (a.state === 'running' && b.state !== 'running') return 1;
+                }
+                return 0;
+            });
+
+            renderContainers();
+        }
+
+        document.getElementById('sortButton').addEventListener('click', () => {
+            currentSort = currentSort === 'started' ? 'stopped' : 'started';
+            localStorage.setItem('containerSort', currentSort);
+            updateSortButton();
+            sortContainers();
+        });
+
+        let currentColumns = parseInt(localStorage.getItem('gridColumns')) || (window.innerWidth <= 768 ? 1 : 3);
+
+function updateGridColumns() {
+    const containerGrid = document.getElementById('containerGrid');
+    const columnsLabel = document.getElementById('columnsLabel');
+    const isMobile = window.innerWidth <= 768;
+    
+
+    containerGrid.classList.remove('grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4');
+    
+
+    containerGrid.classList.add(`grid-cols-${currentColumns}`);
+    
+
+    columnsLabel.textContent = `Columns: ${currentColumns}`;
+    
+
+    localStorage.setItem('gridColumns', currentColumns);
+}
+
+function toggleColumns() {
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+
+        currentColumns = currentColumns === 1 ? 2 : 1;
+    } else {
+
+        currentColumns = currentColumns >= 4 ? 2 : currentColumns + 1;
+    }
+    
+    updateGridColumns();
+}
+
+
+document.getElementById('columnsButton').addEventListener('click', toggleColumns);
+
+
+window.addEventListener('resize', () => {
+    const isMobile = window.innerWidth <= 768;
+    
+
+    if (isMobile && currentColumns > 2) {
+        currentColumns = 1;
+        updateGridColumns();
+    }
+
+    else if (!isMobile && currentColumns === 1) {
+        currentColumns = 3;
+        updateGridColumns();
+    }
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    bindUiEvents();
+    loadServerSettings();
+    loadSortPreference();
+    updateGridColumns();
+    fetchContainers();
+});
+async function searchIcon() {
+    const searchInput = document.getElementById('iconSearch').value;
+    const resultsContainer = document.getElementById('searchResults');
+    
+    if (!searchInput.trim()) {
+        resultsContainer.innerHTML = '';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/search-icon/${searchInput}`);
+        const icons = await response.json();
+        
+        if (!icons.length) {
+            resultsContainer.innerHTML = '<p>No icon was found</p>';
+            return;
+        }
+        
+        resultsContainer.innerHTML = '';
+        icons.forEach(icon => {
+            const div = document.createElement('div');
+            div.className = 'icon-result';
+            const img = document.createElement('img');
+            img.src = icon.url;
+            img.alt = 'Icon';
+            const span = document.createElement('span');
+            span.textContent = icon.format + (icon.variant !== 'default' ? ` (${icon.variant})` : '');
+            div.appendChild(img);
+            div.appendChild(span);
+            div.addEventListener('click', () => selectIcon(icon.url));
+            resultsContainer.appendChild(div);
+        });
+    } catch (error) {
+        showNotification('Error finding icons...', true);
+    }
+}
+
+async function selectIcon(url) {
+    try {
+        const response = await fetch('/api/download-icon', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                url,
+                containerId: currentContainerId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('Icona aggiornata con successo');
+            fetchContainers();
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('iconSearch').value = '';
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        showNotification('Errore nel download dell\'icona', true);
+    }
+}
+</script>
+</body>
+</html>
