@@ -26,6 +26,11 @@ const PORT = process.env.PORT || 3080;
 // scriptSrc. Extracting scripts to public/app.js would allow removing it.
 app.use(helmet({
   contentSecurityPolicy: {
+    // useDefaults: false prevents Helmet v8 from merging in its built-in
+    // defaults, which include upgrade-insecure-requests. That directive
+    // causes browsers to upgrade all HTTP sub-resource requests (CSS, JS,
+    // API calls) to HTTPS, breaking this HTTP-only LAN server.
+    useDefaults: false,
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
