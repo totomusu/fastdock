@@ -4,9 +4,18 @@
 
 A simple web-based Docker container management interface with a modern design. This application provides a fast and intuitive way to start and stop Docker containers on the go through a beautiful web interface.
 
-![Fastdock Interface](assets/screenshots/home-screenshot.png)
+<table>
+    <tr>
+        <td>
+            <img src="assets/screenshots/home-screenshot.png" alt="Fastdock Interface" width="100%" />
+        </td>
+        <td>
+            <img src="assets/screenshots/iphone-screenshot.png" alt="Fastdock iOS Interface" width="100%" />
+        </td>
+    </tr>
+</table>
+
 ![Modal Interface](assets/screenshots/modal-screenshot.png)
-![Fastdock iOS Interface](assets/screenshots/iphone-screenshot.png)
 
 ## Security Notice
 
