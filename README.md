@@ -1,216 +1,294 @@
-![icon](assets/icon-text.png)
+<div align="center">
+  <img src="assets/icon-text.png" alt="FastDock" width="320" />
 
-# Fastdock
+  <h1>FastDock</h1>
 
-A simple web-based Docker container management interface with a modern design. This application provides a fast and intuitive way to start and stop Docker containers on the go through a beautiful web interface.
+  <p>A lightweight, web-based Docker container management UI for local and LAN environments.</p>
+
+  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+  [![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org)
+  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+  [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](docker-compose.yml)
+</div>
+
+---
+
+> **Security notice:** FastDock has **no user authentication**. It is designed for internal/LAN use only and must be deployed behind a VPN or in a trusted network. Mounting `/var/run/docker.sock` grants full control over the Docker host. See [Security](#security) and [SECURITY.md](SECURITY.md).
+
+---
+
+## Screenshots
 
 <table>
-    <tr>
-        <td>
-            <img src="assets/screenshots/home-screenshot.png" alt="Fastdock Interface" width="100%" />
-        </td>
-        <td>
-            <img src="assets/screenshots/iphone-screenshot.png" alt="Fastdock iOS Interface" width="100%" />
-        </td>
-    </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/screenshots/home-screenshot.png" alt="FastDock desktop interface" width="100%" />
+      <sub>Desktop — container grid with status indicators</sub>
+    </td>
+    <td align="center">
+      <img src="assets/screenshots/iphone-screenshot.png" alt="FastDock mobile interface" width="100%" />
+      <sub>Mobile — responsive layout</sub>
+    </td>
+  </tr>
 </table>
 
-![Modal Interface](assets/screenshots/modal-screenshot.png)
+<div align="center">
+  <img src="assets/screenshots/modal-screenshot.png" alt="Container edit modal" width="60%" />
+  <br /><sub>Edit modal — rename containers and assign custom icons</sub>
+</div>
 
-## Security Notice
+---
 
-This application is designed for **internal/LAN use only** and should be deployed behind a VPN or in a secure network environment. It has no user authentication — all users on the network have full container management capabilities.
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+  - [Docker Compose (recommended)](#docker-compose-recommended)
+  - [Node.js / npm](#nodejs--npm)
+  - [PM2 (production)](#pm2-production)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [Security](#security)
+- [Limitations](#limitations)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
+---
 
 ## Features
 
-* **Real-time Container Management**: Start and stop Docker containers
-* **Multi-Server Management**: Manage Docker containers across multiple servers from a single interface
-* **Server Selector**: Quickly switch between local and remote servers
-* **Add/Edit/Delete Servers**: Configure remote servers with custom name, address, and port
-* **Server-Aware Display**: Container cards show which server they belong to
-* **Custom Container Icons**: Upload custom icons or search from the selfh.st/icons library
-* **Container Renaming**: Assign custom names to containers
-* **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+**Container Management**
+- Start and stop containers with a single click
+- Real-time status indicators (running / stopped)
+- Search containers by name
+
+**Multi-Server Support**
+- Manage containers across multiple local and remote Docker hosts
+- Add, edit, and delete server configurations
+- Per-server container views with clear server labels
+
+**Customization**
+- Assign custom display names to containers
+- Upload custom icons (PNG, JPG, GIF, WebP, SVG — max 2 MB)
+- Search and download icons from the [selfh.st/icons](https://selfh.st/icons) library
+
+**Interface**
+- Responsive design — works on desktop, tablet, and mobile
+- Configurable grid layout (1–3 columns)
+- Sorting options (running first, alphabetical)
+- Persistent preferences via `localStorage`
+
+---
 
 ## Quick Start
-
-### Prerequisites
-
-* Node.js >= 16.0.0
-* Docker daemon running
-* Docker socket accessible (`/var/run/docker.sock`)
-
-### Installation
-
-1. **Clone the repository**
 
 ```bash
 git clone https://github.com/totovr46/fastdock.git
 cd fastdock
+docker compose up -d --build
 ```
 
-2. **Install dependencies**
+Open `http://<your-server-ip>:3080` in a browser.
+
+---
+
+## Installation
+
+### Docker Compose (recommended)
+
+FastDock runs as a container but requires access to the host Docker daemon via the socket mount.
 
 ```bash
+git clone https://github.com/totovr46/fastdock.git
+cd fastdock
+docker compose up -d --build
+```
+
+- Settings and uploaded icons persist in `./data` (mounted to `/app/data`).
+- The default port is `3080`. Override it in `docker-compose.yml` or via the `PORT` environment variable.
+
+> **macOS / Windows:** Docker Desktop mounts the socket into its Linux VM, so FastDock controls that VM's containers — not host OS processes.
+
+### Node.js / npm
+
+**Prerequisites:** Node.js ≥ 16.0.0, Docker daemon running locally.
+
+```bash
+git clone https://github.com/totovr46/fastdock.git
+cd fastdock
 npm install
-```
-
-3. **Start the application**
-
-```bash
 npm start
 ```
 
-### Development (auto-reload)
+For development with auto-reload:
 
 ```bash
-npm run dev
+npm run dev          # uses Node.js built-in --watch
+npm run dev:nodemon  # uses nodemon
 ```
 
-This uses Node.js watch mode (`node --watch`) and avoids nodemon configuration conflicts.
+> Do not run `npm run dev server.js` — `server.js` is already the entrypoint; extra arguments are forwarded and will cause an error.
 
-If you prefer nodemon:
-
-```bash
-npm run dev:nodemon
-```
-
-Note: don’t run `npm run dev server.js` — `server.js` is already the entrypoint and extra args may be forwarded.
-
-4. **Access the interface**
-   Open your browser and navigate to `http://serverIP:3080`
-
-On first boot, the `data/` directory is created automatically and any existing settings are migrated from `public/` to `data/`. After confirming the app works correctly, you can delete `public/containerSettings.json` and `public/appSettings.json` if they were present.
-
-## Project Structure
-
-```
-fastdock/
-├── server.js                   # Entry point — middleware wiring and server startup
-├── package.json
-├── ecosystem.config.js         # PM2 configuration
-├── data/                       # Persistent JSON storage (created on first boot)
-│   ├── containerSettings.json
-│   └── appSettings.json
-├── routes/
-│   ├── containers.js           # Container list, start/stop, settings, icon upload
-│   ├── appSettings.js          # Remote server CRUD
-│   └── icons.js                # Icon search and download
-├── middleware/
-│   ├── upload.js               # File upload handling with MIME validation
-│   └── errorHandler.js         # Global error handler
-├── utils/
-│   └── dataStore.js            # Async JSON read/write with atomic writes
-└── public/
-    ├── index.html              # Single-page web interface
-    └── assets/                 # Uploaded container icons (created on first boot)
-```
-
-## API Endpoints
-
-### Container Operations
-
-* `GET /api/containers` — List all containers
-* `POST /api/containers/:id/start` — Start a container
-* `POST /api/containers/:id/stop` — Stop a container
-* `GET /api/containers/name/:name` — Find container by name
-* `POST /api/containers/settings/:id` — Update container name and/or icon
-* `GET /api/containers/settings` — Get all container customizations
-
-### Server Management
-
-* `GET /api/app-settings` — Get configured remote servers
-* `POST /api/app-settings/servers` — Add a new server
-* `PUT /api/app-settings/servers/:index` — Edit an existing server
-* `DELETE /api/app-settings/servers/:index` — Remove a server
-
-### Icon Management
-
-* `GET /api/search-icon/:name` — Search selfh.st/icons via jsdelivr CDN
-* `POST /api/download-icon` — Download and store an icon (CDN only)
-
-## Configuration
-
-### Environment Variables
-
-* `PORT` — Server port (default: `3080`)
-
-### Reverse Proxy
-
-FastDock is often deployed behind a reverse proxy (e.g. Caddy/Nginx). The server enables Express `trust proxy` so rate limiting works correctly when `X-Forwarded-For` is present.
-
-### Docker Socket
-
-The application requires access to the Docker socket:
-
-```bash
-ls -la /var/run/docker.sock
-```
-
-### PM2 (recommended for production)
+### PM2 (production)
 
 ```bash
 npm install -g pm2
 pm2 start ecosystem.config.js
 pm2 save
+pm2 startup   # auto-restart on system reboot
 ```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3080` | Port the HTTP server listens on |
+
+### Reverse Proxy
+
+FastDock works behind Caddy, Nginx, or any standard reverse proxy. The server enables Express `trust proxy` so that rate limiting works correctly with `X-Forwarded-For` headers.
+
+Example Caddy block:
+
+```
+fastdock.internal {
+    reverse_proxy localhost:3080
+}
+```
+
+### Docker Socket
+
+Verify the socket is accessible before starting:
+
+```bash
+ls -la /var/run/docker.sock
+```
+
+---
 
 ## Usage
 
 ### Basic Operations
 
-1. **Select Server**: Use the dropdown to choose a local or remote server
-2. **View Containers**: See all containers for the selected server
-3. **Start/Stop**: Click the button on any container card
-4. **Edit Container**: Click the pencil icon to change the name or icon
+1. **Select a server** — use the dropdown to switch between local and remote Docker hosts.
+2. **View containers** — all containers for the selected server are shown as cards.
+3. **Start / Stop** — click the button on any container card.
+4. **Edit** — click the pencil icon to open the edit modal.
 
 ### Container Customization
 
-1. Click the edit icon on any container card
-2. Upload a custom icon (PNG, JPG, GIF, WebP, or SVG — max 2MB)
-3. Or search for an icon by name (sourced from selfh.st/icons)
-4. Set a custom display name
-5. Click "Save"
+1. Click the pencil icon on any container card.
+2. Set a custom display name.
+3. Upload a custom icon **or** search for one by name (sourced from selfh.st/icons).
+4. Click **Save**.
+
+Supported upload formats: PNG, JPG, GIF, WebP, SVG. Maximum size: 2 MB.
 
 ### Server Management
 
-1. Click "+" next to the server selector to add a remote server
-2. Enter a name, address (e.g. `http://192.168.1.5`), and port
-3. Use the edit (pencil) or delete (trash) buttons to manage existing servers
+1. Click **+** next to the server selector to add a remote server.
+2. Enter a name, address (e.g. `http://192.168.1.5`), and port.
+3. Use the pencil or trash icons next to existing servers to edit or remove them.
 
 ### Status Indicators
 
-* Green dot — Container is running
-* Red dot — Container is stopped
-
-## Security
-
-The following security measures are implemented:
-
-* **Security headers** via Helmet (X-Frame-Options, X-Content-Type-Options, CSP, etc.)
-* **Rate limiting** — 100 API requests/minute per IP; 20 for icon downloads
-* **Input validation** — Container IDs, server addresses, port numbers, and filenames are validated server-side
-* **File upload validation** — MIME type checked via HTTP header and magic bytes; 2MB size limit; filename sanitized
-* **SSRF protection** — Icon downloads are whitelisted to `cdn.jsdelivr.net` only; redirects are blocked
-* **Path traversal protection** — All file paths are resolved and checked against the assets directory
-* **No internal error details exposed** — Server errors are logged server-side; clients receive generic messages
-* **Data files outside web root** — Settings JSON files are stored in `data/` and are not accessible over HTTP
-
-## Limitations
-
-* No user authentication — deploy in a trusted network only
-* No audit logging of container operations
-* Single instance only
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes
-4. Push to the branch and open a Pull Request
+| Indicator | Meaning |
+|---|---|
+| Green dot | Container is running |
+| Red dot | Container is stopped |
 
 ---
 
-**Important**: This application provides direct access to Docker containers. Deploy only in secure, controlled environments with trusted users.
+## API Reference
 
-![icon](icon.png)
+### Container Operations
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/containers` | List all containers |
+| `POST` | `/api/containers/:id/start` | Start a container |
+| `POST` | `/api/containers/:id/stop` | Stop a container |
+| `GET` | `/api/containers/name/:name` | Find a container by name |
+| `GET` | `/api/containers/settings` | Get all container customizations |
+| `POST` | `/api/containers/settings/:id` | Update container name and/or icon (multipart/form-data) |
+
+### Server Management
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/app-settings` | Get configured remote servers |
+| `POST` | `/api/app-settings/servers` | Add a new server |
+| `PUT` | `/api/app-settings/servers/:index` | Edit an existing server |
+| `DELETE` | `/api/app-settings/servers/:index` | Remove a server |
+
+### Icon Management
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/search-icon/:name` | Search selfh.st/icons via jsdelivr CDN |
+| `POST` | `/api/download-icon` | Download and store an icon (CDN whitelist enforced) |
+
+---
+
+## Security
+
+FastDock implements the following mitigations:
+
+| Measure | Detail |
+|---|---|
+| Security headers | Helmet sets `X-Frame-Options`, `X-Content-Type-Options`, `CSP`, and more |
+| Rate limiting | 100 API requests/min per IP; 20 requests/min for icon downloads |
+| Input validation | Container IDs, server addresses, ports, and filenames validated server-side |
+| File upload validation | MIME type checked via HTTP header **and** magic bytes; 2 MB limit; filename sanitised |
+| SSRF protection | Icon downloads whitelisted to `cdn.jsdelivr.net` only; redirects blocked |
+| Path traversal protection | All file paths resolved and checked against the assets directory |
+| Error message safety | Server errors logged server-side; clients receive generic messages for 5xx responses |
+| Data isolation | `data/` is outside the web root and not accessible over HTTP |
+
+Despite these measures, FastDock **has no authentication layer**. It must only be deployed in networks where all users are trusted. See [SECURITY.md](SECURITY.md) for the full security posture and responsible disclosure process.
+
+---
+
+## Limitations
+
+- No user authentication — deploy in trusted networks only.
+- No audit log of container start/stop operations.
+- Single-instance only (no distributed state).
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+**Quick steps:**
+
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feature/your-feature`.
+3. Commit your changes with a clear message.
+4. Push and open a Pull Request against `main`.
+
+For bug reports and feature requests, open a [GitHub Issue](https://github.com/totovr46/fastdock/issues).
+
+---
+
+## License
+
+Distributed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE) for the full text.
+
+---
+
+## Acknowledgements
+
+- [Dockerode](https://github.com/apocas/dockerode) — Docker API client for Node.js
+- [selfh.st/icons](https://selfh.st/icons) — icon library used for container icon search
+- [Helmet](https://helmetjs.github.io/) — Express security headers
+- [Multer](https://github.com/expressjs/multer) — multipart file upload handling
+- [file-type](https://github.com/sindresorhus/file-type) — magic byte MIME validation

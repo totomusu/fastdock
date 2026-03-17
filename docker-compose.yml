@@ -1,0 +1,15 @@
+services:
+  fastdock:
+    build: .
+    container_name: fastdock
+    restart: unless-stopped
+    ports:
+      - "3080:3080"
+    environment:
+      PORT: "3080"
+      NODE_ENV: "production"
+    volumes:
+      # Persist settings + uploaded icons
+      - ./data:/app/data
+      # Allow FastDock to manage containers on the Docker host
+      - /var/run/docker.sock:/var/run/docker.sock
