@@ -13,6 +13,7 @@ const errorHandler = require('./middleware/errorHandler');
 const containersRouter = require('./routes/containers');
 const appSettingsRouter = require('./routes/appSettings');
 const iconsRouter = require('./routes/icons');
+const proxyRouter = require('./routes/proxy');
 
 const app = express();
 // FastDock is commonly deployed behind a reverse proxy (Caddy/Nginx/VPN gateways)
@@ -36,6 +37,8 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "cdn.jsdelivr.net"],
+      // All remote server calls are now proxied through this server, so
+      // the browser only ever connects back to 'self'.
       connectSrc: ["'self'"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
@@ -49,9 +52,13 @@ app.use(helmet({
 }));
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-// LAN-only deployment: allow requests with no origin (same-origin, curl).
-// Explicit methods/headers instead of wildcard default.
+// FastDock's multi-server feature works by having the browser fetch directly
+// from remote FastDock instances (e.g. http://10.x.x.x:3080/api/containers).
+// Each FastDock instance must therefore respond with CORS headers that allow
+// requests from any origin ('*'), since the requesting origin is another
+// FastDock running on an arbitrary LAN IP. This is safe for a LAN-only tool.
 app.use(cors({
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type']
 }));
@@ -89,6 +96,9 @@ app.use('/assets', express.static(ASSETS_DIR));
 app.use('/api', containersRouter);
 app.use('/api', appSettingsRouter);
 app.use('/api', iconsRouter);
+// Proxy routes forward browser requests to remote FastDock instances
+// server-side, avoiding mixed content blocks when the page is on HTTPS.
+app.use('/api', proxyRouter);
 
 // ── Global error handler (must be last) ──────────────────────────────────────
 app.use(errorHandler);

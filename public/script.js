@@ -3,7 +3,10 @@
 /* ── State ── */
 let containers = [];
 let servers = [];
-let currentBaseUrl = '';
+// Index into servers[] for the currently selected remote server.
+// null = local Docker host. Remote calls go through /api/proxy/* so the
+// browser never makes direct HTTP requests (avoids mixed content on HTTPS).
+let currentServerIndex = null;
 let currentContainerId = null;
 let currentSort = localStorage.getItem('containerSort') || 'started';
 let currentColumns = parseInt(localStorage.getItem('gridColumns'), 10);
@@ -35,7 +38,9 @@ async function fetchContainers() {
   const g = grid();
   g.innerHTML = '<div class="state-message">Loading…</div>';
   try {
-    const url = currentBaseUrl ? `${currentBaseUrl}/api/containers` : '/api/containers';
+    const url = currentServerIndex !== null
+      ? `/api/proxy/containers?serverIndex=${currentServerIndex}`
+      : '/api/containers';
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -153,8 +158,8 @@ async function toggleContainer(id, isRunning) {
 
   try {
     const ep  = isRunning ? 'stop' : 'start';
-    const url = currentBaseUrl
-      ? `${currentBaseUrl}/api/containers/${id}/${ep}`
+    const url = currentServerIndex !== null
+      ? `/api/proxy/containers/${id}/${ep}?serverIndex=${currentServerIndex}`
       : `/api/containers/${id}/${ep}`;
     const res = await fetch(url, { method: 'POST' });
     if (!res.ok) throw new Error('Request failed');
@@ -186,7 +191,10 @@ async function toggleContainer(id, isRunning) {
 /* ── Settings ── */
 async function loadContainerSettings() {
   try {
-    const res = await fetch('/api/containers/settings');
+    const url = currentServerIndex !== null
+      ? `/api/proxy/containers/settings?serverIndex=${currentServerIndex}`
+      : '/api/containers/settings';
+    const res = await fetch(url);
     return await res.json();
   } catch { return {}; }
 }
@@ -287,27 +295,22 @@ async function handleServerChange(val) {
         all.push(...lc.map(c => ({ ...c, serverName: 'Local' })));
       }
     } catch {}
-    for (const s of servers) {
-      const base = buildServerUrl(s);
-      if (!base) continue;
+    for (let i = 0; i < servers.length; i++) {
       try {
-        const r = await fetch(`${base}/api/containers`);
+        const r = await fetch(`/api/proxy/containers?serverIndex=${i}`);
         if (r.ok) {
           const rc = await r.json();
-          all.push(...rc.map(c => ({ ...c, serverName: s.name })));
+          all.push(...rc.map(c => ({ ...c, serverName: servers[i].name })));
         }
       } catch {}
     }
     containers = all;
     renderContainers(true);
   } else if (val === 'local') {
-    currentBaseUrl = '';
+    currentServerIndex = null;
     fetchContainers();
   } else {
-    const s = servers[parseInt(val)];
-    const base = buildServerUrl(s);
-    if (!base) { showNotification('Invalid server address', true); return; }
-    currentBaseUrl = base;
+    currentServerIndex = parseInt(val, 10);
     editBtn.style.display   = 'flex';
     deleteBtn.style.display = 'flex';
     fetchContainers();
@@ -375,7 +378,10 @@ document.getElementById('editContainerForm').addEventListener('submit', async e 
   if (iconFile) formData.append('icon', iconFile);
   formData.append('name', newName);
   try {
-    const res = await fetch(`/api/containers/settings/${currentContainerId}`, {
+    const settingsUrl = currentServerIndex !== null
+      ? `/api/proxy/containers/settings/${currentContainerId}?serverIndex=${currentServerIndex}`
+      : `/api/containers/settings/${currentContainerId}`;
+    const res = await fetch(settingsUrl, {
       method: 'POST',
       body: formData,
     });
@@ -427,7 +433,10 @@ async function selectIcon(url, el) {
   document.querySelectorAll('.icon-result-item').forEach(i => i.classList.remove('selected'));
   el.classList.add('selected');
   try {
-    const res = await fetch('/api/download-icon', {
+    const downloadUrl = currentServerIndex !== null
+      ? `/api/proxy/download-icon?serverIndex=${currentServerIndex}`
+      : '/api/download-icon';
+    const res = await fetch(downloadUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, containerId: currentContainerId }),
